@@ -1,6 +1,6 @@
 # php-framework/logging
 
-Структурированное JSON-логирование для PHP-проектов Yasno. Приложение пишет одну JSON-строку на запись в stderr, дальше её забирает docker `json-file` и Fluent Bit (см. `.task/centralized-logging/plan.md`).
+Структурированное JSON-логирование для PHP-проектов Yasno. Приложение пишет одну JSON-строку на запись в stderr, дальше её забирает docker `json-file` и Fluent Bit.
 
 ## Состав
 
