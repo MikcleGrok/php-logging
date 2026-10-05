@@ -1,4 +1,4 @@
-# yasno/logging
+# php-framework/logging
 
 Структурированное JSON-логирование для PHP-проектов Yasno. Приложение пишет одну JSON-строку на запись в stderr, дальше её забирает docker `json-file` и Fluent Bit (см. `.task/centralized-logging/plan.md`).
 
@@ -25,11 +25,14 @@
 В `composer.json` проекта (пакет в публичном GitHub-репозитории, без Packagist):
 
 ```json
-"repositories": [{ "type": "vcs", "url": "https://github.com/MikcleGrok/yasno-logging" }],
-"require": { "yasno/logging": "^0.1" }
+"repositories": [{ "type": "vcs", "url": "https://github.com/MikcleGrok/php-logging.git" }]
 ```
 
-`composer update yasno/logging --with-dependencies`, `composer.lock` коммитится.
+```
+composer require php-framework/logging:^0.1
+```
+
+`composer update php-framework/logging --with-dependencies`, `composer.lock` коммитится.
 
 ### Slim 4
 

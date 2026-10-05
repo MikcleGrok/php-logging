@@ -1,8 +1,16 @@
 {
-    "name": "yasno/logging",
+    "name": "php-framework/logging",
     "description": "Structured JSON logging for Yasno PHP projects: Monolog factory, request id, PSR-15 middleware, Symfony bridge.",
     "type": "library",
-    "license": "proprietary",
+    "license": "MIT",
+    "homepage": "https://github.com/MikcleGrok/php-logging",
+    "support": {
+        "source": "https://github.com/MikcleGrok/php-logging",
+        "issues": "https://github.com/MikcleGrok/php-logging/issues"
+    },
+    "authors": [
+        { "name": "Sergey" }
+    ],
     "require": {
         "php": ">=8.2",
         "monolog/monolog": "^3",
