@@ -56,6 +56,13 @@ final class RequestIdTest extends TestCase
         self::assertNotSame($id, RequestId::generate());
     }
 
+    public function testResolveTakesTheFirstValidCandidateOrGenerates(): void
+    {
+        self::assertSame('0123456789abcdef', RequestId::resolve(null, 'bad', '0123456789abcdef', 'headerheader1234'));
+        self::assertMatchesRegularExpression('~^[0-9a-f]{32}$~', RequestId::resolve(null, "x\r\ny"));
+        self::assertMatchesRegularExpression('~^[0-9a-f]{32}$~', RequestId::resolve());
+    }
+
     public function testSetGetReset(): void
     {
         $requestId = new RequestId();

@@ -1,0 +1,12 @@
+# Sample wiring for Symfony projects: import from config/services.yaml (imports: [{ resource: yasno_logging.yaml }])
+# and set `formatter: Yasno\Logging\Formatter\JsonLineFormatter` on the monolog stream handlers.
+services:
+  Yasno\Logging\RequestId:
+    tags: [{ name: kernel.reset, method: reset }]
+  Yasno\Logging\Processor\RequestIdProcessor:
+    arguments: ['@Yasno\Logging\RequestId']
+    tags: ['monolog.processor']
+  Yasno\Logging\Formatter\JsonLineFormatter: ~
+  Yasno\Logging\Bridge\Symfony\RequestIdSubscriber:
+    arguments: ['@Yasno\Logging\RequestId']
+    tags: ['kernel.event_subscriber']

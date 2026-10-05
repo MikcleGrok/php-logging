@@ -36,6 +36,18 @@ final class RequestId
         return $candidate;
     }
 
+    /** The first valid candidate, in the given order; a freshly generated id when none is valid. */
+    public static function resolve(?string ...$candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            $valid = self::normalize($candidate);
+            if ($valid !== null) {
+                return $valid;
+            }
+        }
+        return self::generate();
+    }
+
     public static function generate(): string
     {
         return bin2hex(random_bytes(16));
