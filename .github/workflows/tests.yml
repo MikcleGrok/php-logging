@@ -3,6 +3,12 @@ name: Tests
 on:
   push:
   pull_request:
+  schedule:
+    # weekly: composer.lock is not committed (library), so new advisories must be caught without a push
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
 
 jobs:
   phpunit:
@@ -12,10 +18,13 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
     steps:
+      # TODO(LOG-06): pin the actions below to full commit SHAs (the SHAs must be taken from GitHub, they are not known
+      # from this repository); until then they stay on major tags.
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           coverage: none
       - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: composer audit
       - run: vendor/bin/phpunit
