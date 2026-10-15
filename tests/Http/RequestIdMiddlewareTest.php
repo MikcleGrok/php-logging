@@ -11,6 +11,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use RuntimeException;
 use Yasno\Logging\Http\RequestIdMiddleware;
 use Yasno\Logging\RequestId;
+use Yasno\Logging\Tests\Support\Assert\RequestIdAssert;
 
 final class RequestIdMiddlewareTest extends TestCase
 {
@@ -82,8 +83,32 @@ final class RequestIdMiddlewareTest extends TestCase
 
         $response = $this->middleware->process($request, $this->handler());
 
-        self::assertMatchesRegularExpression('~^[0-9a-f]{32}$~', $this->idSeenByHandler ?? '');
+        RequestIdAssert::seeGenerated($this->idSeenByHandler ?? '');
         self::assertSame($this->idSeenByHandler, $response->getHeaderLine('X-Request-Id'));
+    }
+
+    public function testTheHeaderIsIgnoredWhenClientHeadersAreNotTrusted(): void
+    {
+        $clientId = RequestId::generate();
+        $middleware = new RequestIdMiddleware($this->requestId, false);
+        $request = new ServerRequest('GET', '/', ['X-Request-Id' => $clientId]);
+
+        $response = $middleware->process($request, $this->handler());
+
+        self::assertNotSame($clientId, $this->idSeenByHandler);
+        RequestIdAssert::seeGenerated($this->idSeenByHandler ?? '');
+        self::assertSame($this->idSeenByHandler, $response->getHeaderLine('X-Request-Id'));
+    }
+
+    public function testTheServerParamStillWinsWhenClientHeadersAreNotTrusted(): void
+    {
+        $serverId = RequestId::generate();
+        $middleware = new RequestIdMiddleware($this->requestId, false);
+        $request = new ServerRequest('GET', '/', ['X-Request-Id' => RequestId::generate()], null, '1.1', ['REQUEST_ID' => $serverId]);
+
+        $middleware->process($request, $this->handler());
+
+        self::assertSame($serverId, $this->idSeenByHandler);
     }
 
     public function testAnInvalidServerParamFallsThroughToTheHeader(): void
@@ -99,7 +124,7 @@ final class RequestIdMiddlewareTest extends TestCase
     {
         $response = $this->middleware->process(new ServerRequest('GET', '/'), $this->handler());
 
-        self::assertMatchesRegularExpression('~^[0-9a-f]{32}$~', $response->getHeaderLine('X-Request-Id'));
+        RequestIdAssert::seeGenerated($response->getHeaderLine('X-Request-Id'));
     }
 
     public function testTheIdIsResetAfterTheRequest(): void

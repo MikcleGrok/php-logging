@@ -87,7 +87,7 @@ $app->addErrorMiddleware(false, true, false, $logger);
 
 ## Request ID
 
-Источник ID по приоритету: `$_SERVER['REQUEST_ID']` (nginx `fastcgi_param REQUEST_ID $req_id;`) → заголовок `X-Request-Id` → сгенерированный (32 hex). Невалидное значение (мусор, CRLF, длиннее 64 символов) молча заменяется. ID возвращается в заголовке ответа `X-Request-Id`. После запроса `RequestId` сбрасывается (middleware — в `finally`, Symfony — сервис с тегом `kernel.reset`).
+Источник ID по приоритету: `$_SERVER['REQUEST_ID']` (nginx `fastcgi_param REQUEST_ID $req_id;`) → заголовок `X-Request-Id` → сгенерированный (32 hex). Невалидное значение (мусор, CRLF, длиннее 64 символов) молча заменяется. Заголовок `X-Request-Id` подконтролен клиенту (формат проверяется, но значение можно подставить); без доверенного прокси, выставляющего `REQUEST_ID`, передайте `trustClientHeader: false` — `new RequestIdMiddleware($requestId, false)` / вторым аргументом `RequestIdSubscriber` — и заголовок будет игнорироваться (по умолчанию `true`, поведение прежнее). ID возвращается в заголовке ответа `X-Request-Id`. После запроса `RequestId` сбрасывается (middleware — в `finally`, Symfony — сервис с тегом `kernel.reset`).
 
 ## Контракт полей
 

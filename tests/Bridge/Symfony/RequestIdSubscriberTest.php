@@ -62,6 +62,30 @@ final class RequestIdSubscriberTest extends TestCase
         self::assertSame('headerheader1234', $response->headers->get('X-Request-Id'));
     }
 
+    public function testTheHeaderIsIgnoredWhenClientHeadersAreNotTrusted(): void
+    {
+        $clientId = RequestId::generate();
+        $this->subscriber = new RequestIdSubscriber($this->requestId, false);
+        $request = Request::create('/', 'GET', [], [], [], ['HTTP_X_REQUEST_ID' => $clientId]);
+
+        $response = $this->handle($request);
+
+        self::assertNotSame($clientId, $this->requestId->get());
+        self::assertMatchesRegularExpression('~^[0-9a-f]{32}$~', (string) $this->requestId->get());
+        self::assertSame($this->requestId->get(), $response->headers->get('X-Request-Id'));
+    }
+
+    public function testTheServerParamStillWinsWhenClientHeadersAreNotTrusted(): void
+    {
+        $serverId = RequestId::generate();
+        $this->subscriber = new RequestIdSubscriber($this->requestId, false);
+        $request = Request::create('/', 'GET', [], [], [], ['REQUEST_ID' => $serverId, 'HTTP_X_REQUEST_ID' => RequestId::generate()]);
+
+        $this->handle($request);
+
+        self::assertSame($serverId, $this->requestId->get());
+    }
+
     public function testAnInvalidHeaderIsReplacedByAGeneratedId(): void
     {
         $request = Request::create('/', 'GET', [], [], [], ['HTTP_X_REQUEST_ID' => 'bad value']);

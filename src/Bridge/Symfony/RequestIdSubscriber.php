@@ -11,11 +11,12 @@ use Yasno\Logging\RequestId;
 
 /**
  * Symfony counterpart of RequestIdMiddleware. Requires symfony/http-kernel. The RequestId service is expected to be
- * tagged kernel.reset (see config/symfony/yasno_logging.yaml).
+ * tagged kernel.reset (see config/symfony/yasno_logging.yaml). Pass $trustClientHeader = false when no trusted proxy
+ * sets REQUEST_ID: the X-Request-Id header is then ignored.
  */
 final class RequestIdSubscriber implements EventSubscriberInterface
 {
-    public function __construct(private readonly RequestId $requestId)
+    public function __construct(private readonly RequestId $requestId, private readonly bool $trustClientHeader = true)
     {
     }
 
@@ -37,7 +38,8 @@ final class RequestIdSubscriber implements EventSubscriberInterface
         }
         $request = $event->getRequest();
         $serverParam = $request->server->get('REQUEST_ID');
-        $id = RequestId::resolve(is_string($serverParam) ? $serverParam : null, $request->headers->get(RequestIdMiddleware::HEADER));
+        $header = $this->trustClientHeader ? $request->headers->get(RequestIdMiddleware::HEADER) : null;
+        $id = RequestId::resolve(is_string($serverParam) ? $serverParam : null, $header);
         $this->requestId->set($id);
         $request->attributes->set(RequestIdMiddleware::ATTRIBUTE, $id);
     }
