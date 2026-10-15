@@ -13,15 +13,17 @@ final class LoggerFactory
 {
     /**
      * @param resource|string $stream php://stderr in production; a resource or another URL for tests
+     * @param list<string> $sensitiveKeys additional context/extra key fragments to redact (see JsonLineFormatter)
      */
     public static function create(
         string $channel = 'app',
         ?RequestId $id = null,
         ?string $level = null,
         mixed $stream = 'php://stderr',
+        array $sensitiveKeys = [],
     ): Logger {
         $handler = new StreamHandler($stream, self::resolveLevel($level));
-        $handler->setFormatter(new JsonLineFormatter());
+        $handler->setFormatter(new JsonLineFormatter($sensitiveKeys));
         $logger = new Logger($channel, [$handler]);
         if ($id !== null) {
             $logger->pushProcessor(new RequestIdProcessor($id));
