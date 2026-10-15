@@ -6,7 +6,7 @@
 
 | Класс | Назначение |
 |---|---|
-| `LoggerFactory::create($channel, $id, $level, $stream, $sensitiveKeys)` | Monolog `Logger`: `StreamHandler('php://stderr')` + `JsonLineFormatter` |
+| `LoggerFactory::create($channel, $id, $level, $stream, $sensitiveKeys, $filePermission)` | Monolog `Logger`: `StreamHandler('php://stderr')` + `JsonLineFormatter` |
 | `Formatter\JsonLineFormatter` | одна строка JSON, без stack trace, `extra.request_id` поднимается в `request_id`, строка ≤ 8 KiB, значения чувствительных ключей и секреты в строках маскируются |
 | `RequestId` | ID текущего запроса; `normalize()` принимает `^[A-Za-z0-9-]{8,64}$`, остальное отбрасывает |
 | `Processor\RequestIdProcessor` | кладёт ID в `extra.request_id` |
@@ -46,7 +46,8 @@
 
 - Канал по умолчанию — `app`. Доменные каналы — одно слово в нижнем регистре: `mail`, `security`, `import`.
 - Канал `access` зарезервирован за nginx; в приложениях не использовать.
-- Уровень — переменная окружения `LOG_LEVEL` (`debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`). По умолчанию `info`; неизвестное значение = `info`. Явный аргумент `$level` приоритетнее env.
+- Уровень — переменная окружения `LOG_LEVEL` (`debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`). По умолчанию `info`; неизвестное значение = `info`. Явный аргумент `$level` приоритетнее env. `debug` на prod не включать: уровень пишет подробный контекст, а `LOG_LEVEL` берётся из окружения — окружение должно быть доверенным.
+- `$stream` — только доверенная конфигурация приложения (`php://stderr`, `php://stdout`, путь к файлу), не пользовательский ввод; при открытии файла по пути Monolog каждый раз вызывает `chmod 0640` — права применяются и к уже существующему файлу (если он принадлежит пользователю процесса), поэтому читавшие его через `other` потеряют доступ. Режим `0640` запрашивается только для обычного файла (строка-путь без `://`, не симлинк, не устройство и не FIFO; файла может ещё не быть): `/dev/null`, `/dev/stderr`, `/dev/stdout`, `php://...` и симлинки остаются как есть. Режим задаётся параметром `filePermission` (`LoggerFactory::create(filePermission: 0600)`, по умолчанию `0640`); `filePermission: null` — не трогать права файла, в том числе существующего.
 
 ## Подключение
 
