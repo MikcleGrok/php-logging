@@ -13,6 +13,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "ext-mbstring": "*",
         "monolog/monolog": "^3",
         "psr/http-server-middleware": "^1"
     },
