@@ -7,10 +7,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
+use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Yasno\Logging\Bridge\Symfony\RequestIdSubscriber;
 use Yasno\Logging\RequestId;
+use Yasno\Logging\Tests\Support\Assert\RequestIdAssert;
 
 final class RequestIdSubscriberTest extends TestCase
 {
@@ -42,6 +44,23 @@ final class RequestIdSubscriberTest extends TestCase
         self::assertSame('onResponse', $events[KernelEvents::RESPONSE]);
     }
 
+    public function testItSubscribesToTerminateAfterOtherListeners(): void
+    {
+        $events = RequestIdSubscriber::getSubscribedEvents();
+
+        self::assertSame(['onTerminate', RequestIdSubscriber::TERMINATE_PRIORITY], $events[KernelEvents::TERMINATE]);
+    }
+
+    public function testTheIdIsResetWhenTheKernelTerminates(): void
+    {
+        $request = Request::create('/');
+        $response = $this->handle($request);
+
+        $this->subscriber->onTerminate(new TerminateEvent($this->kernel, $request, $response));
+
+        self::assertNull($this->requestId->get());
+    }
+
     public function testItTakesTheIdFromServerParams(): void
     {
         $request = Request::create('/', 'GET', [], [], [], ['REQUEST_ID' => '0123456789abcdef']);
@@ -71,7 +90,7 @@ final class RequestIdSubscriberTest extends TestCase
         $response = $this->handle($request);
 
         self::assertNotSame($clientId, $this->requestId->get());
-        self::assertMatchesRegularExpression('~^[0-9a-f]{32}$~', (string) $this->requestId->get());
+        RequestIdAssert::seeGenerated((string) $this->requestId->get());
         self::assertSame($this->requestId->get(), $response->headers->get('X-Request-Id'));
     }
 
@@ -92,7 +111,7 @@ final class RequestIdSubscriberTest extends TestCase
 
         $response = $this->handle($request);
 
-        self::assertMatchesRegularExpression('~^[0-9a-f]{32}$~', (string) $response->headers->get('X-Request-Id'));
+        RequestIdAssert::seeGenerated((string) $response->headers->get('X-Request-Id'));
         self::assertSame($response->headers->get('X-Request-Id'), $this->requestId->get());
     }
 
