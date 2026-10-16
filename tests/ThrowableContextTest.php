@@ -325,6 +325,11 @@ final class ThrowableContextTest extends TestCase
         yield 'bot word with a short number' => ['bot12345:abc is not a token'];
         yield 'short stripe-like prefix' => ['sk_live_abc is not a key'];
         yield 'slack host without a webhook path' => ['https://hooks.slack.com/services/'];
+        yield 'xml of harmless names' => ['<user>{user}</user><status>failed</status>'];
+        yield 'xml metadata' => ['<password_length>12</password_length>'];
+        yield 'xml self-closing element' => ['<password hint="none"/>{user}'];
+        yield 'xml closing tag only' => ['text </password> text'];
+        yield 'serialized array of harmless names' => ['a:1:{s:4:"user";s:12:"{user}";}'];
     }
 
     #[DataProvider('pemLabels')]
@@ -743,6 +748,38 @@ final class ThrowableContextTest extends TestCase
         yield 'var_export' => ["'password' => '%s',", "'password' => ***,"];
         yield 'bare name and arrow' => ['password => %s ok', 'password => *** ok'];
         yield 'bare name and arrow without spaces' => ['password=>%s ok', 'password=>*** ok'];
+        yield 'var_dump' => [
+            "[\"password\"]=>\n  string(16) \"%s\"\n[\"user\"]=>\n  string(13) \"{user}\"",
+            "[\"password\"]=>\n  ***\n[\"user\"]=>\n  string(13) \"{user}\"",
+        ];
+        yield 'var_dump of a protected property' => [
+            "[\"token\":protected]=>\n  string(16) \"%s\"",
+            "[\"token\":protected]=>\n  ***",
+        ];
+        yield 'var_dump of a private property of a class' => [
+            "[\"apiKey\":\"App\\User\":private]=>\n  string(16) \"%s\"",
+            "[\"apiKey\":\"***\":private]=>\n  ***",
+        ];
+        yield 'xml element' => ['<password>%s</password><user>{user}</user>', '<password>***</password><user>{user}</user>'];
+        yield 'xml element with a namespace' => ['<wsse:Password>%s</wsse:Password>', '<wsse:Password>***</wsse:Password>'];
+        yield 'xml element with attributes' => [
+            '<password type="plain">%s</password>',
+            '<password type="plain">***</password>',
+        ];
+        yield 'xml cdata' => ['<secret><![CDATA[%s]]></secret>', '<secret><![CDATA[***]]></secret>'];
+        yield 'xml element on several lines' => ["<token>\n  %s\n</token>", "<token>\n  ***</token>"];
+        yield 'serialized string' => [
+            'a:2:{s:8:"password";s:16:"%s";s:4:"user";s:13:"{user}";}',
+            'a:2:{s:8:"password";s:3:"***";s:4:"user";s:13:"{user}";}',
+        ];
+        yield 'serialized protected property' => [
+            "O:4:\"User\":1:{s:8:\"\0*\0token\";s:16:\"%s\";}",
+            "O:4:\"User\":1:{s:8:\"\0*\0token\";s:3:\"***\";}",
+        ];
+        yield 'serialized secret with a quote inside' => [
+            'a:1:{s:8:"password";s:17:"%s"x";}',
+            'a:1:{s:8:"password";s:3:"***";}',
+        ];
     }
 
     #[DataProvider('printRProperties')]
@@ -764,6 +801,22 @@ final class ThrowableContextTest extends TestCase
         yield 'protected' => ['password:protected'];
         yield 'private' => ['password:private'];
         yield 'private of a class' => ['apiToken:App\\User:private'];
+    }
+
+    public function testAnIntegerUnderASerializedSensitiveKeyIsMasked(): void
+    {
+        $pin = (string) random_int(100000, 999999);
+
+        $masked = ThrowableContext::mask(sprintf('a:1:{s:3:"pin";i:%s;}', $pin));
+
+        self::assertSame('a:1:{s:3:"pin";s:3:"***";}', $masked);
+    }
+
+    public function testVarDumpOfAHarmlessNameIsKept(): void
+    {
+        $text = "[\"user\"]=>\n  string(13) \"$this->user\"";
+
+        self::assertSame($text, ThrowableContext::mask($text));
     }
 
     public function testMetadataUnderASensitiveNameIsKept(): void
